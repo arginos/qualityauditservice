@@ -1,0 +1,596 @@
+#%RAML 1.0
+title: qualityauditservice
+description: API for Caliber use
+version: '2.0'
+(oas-info):
+  contact:
+    name: Revature
+    url: 'https://gitlab.revaturelabs.com/caliber/quality-audit'
+    email: cloud-ops@revature.com
+annotationTypes:
+  oas-info:
+    properties:
+      termsOfService?: string
+      contact?:
+        properties:
+          name?: string
+          url?: string
+          email?: string
+      license?:
+        properties:
+          name?: string
+          url?: string
+    allowedTargets: API
+  oas-tags-definition:
+    allowedTargets: API
+    type: array
+    items:
+      properties:
+        name: string
+        description?: string
+        externalDocs?:
+          properties:
+            url: string
+            description?: string
+  oas-definition-name:
+    type: string
+    allowedTargets: TypeDeclaration
+  oas-summary:
+    type: string
+    allowedTargets: Method
+  oas-tags:
+    type: 'string[]'
+    allowedTargets: Method
+  oas-body-name:
+    type: string
+    allowedTargets: TypeDeclaration
+(oas-tags-definition):
+  - name: named-week-controller
+    description: Named Week Controller
+  - name: note-controller
+    description: Note Controller
+  - name: qc-category-controller
+    description: Qc Category Controller
+baseUri: 'http://localhost:10004/qa'
+types:
+  QcCategory:
+    type: object
+    properties:
+      batchId:
+        type: string
+      categoryId:
+        type: integer
+        format: int32
+      id:
+        type: integer
+        format: int32
+      skillCategory:
+        type: string
+      week:
+        type: integer
+        format: int32
+  Map_string_int_:
+    type: object
+    (oas-definition-name): 'Map«string,int»'
+  NoteForm:
+    type: object
+    properties:
+      associateId:
+        type: string
+      batchId:
+        type: string
+      noteContent:
+        type: string
+      noteId:
+        type: integer
+        format: int32
+      noteType:
+        type: string
+        enum:
+          - TRAINEE
+          - BATCH
+          - QC_TRAINEE
+          - QC_BATCH
+      technicalStatus:
+        type: string
+        enum:
+          - Superstar
+          - Good
+          - Average
+          - Poor
+          - Undefined
+      week:
+        type: integer
+        format: int32
+  Note:
+    type: object
+    properties:
+      associateId:
+        type: string
+      batchId:
+        type: string
+      content:
+        type: string
+      createdOn:
+        type: date-only
+      employeeId:
+        type: string
+      lastUpdated:
+        type: date-only
+      noteId:
+        type: integer
+        format: int32
+      technicalStatus:
+        type: string
+        enum:
+          - Superstar
+          - Good
+          - Average
+          - Poor
+          - Undefined
+      type:
+        type: string
+        enum:
+          - TRAINEE
+          - BATCH
+          - QC_TRAINEE
+          - QC_BATCH
+      week:
+        type: integer
+        format: int32
+  NamedWeek:
+    type: object
+    properties:
+      batchId:
+        type: string
+      id:
+        type: integer
+        format: int32
+      name:
+        type: string
+      weekNumber:
+        type: integer
+        format: int32
+/category:
+  get:
+    displayName: findAllCategoriesUsingGET
+    responses:
+      '200':
+        description: OK
+        body:
+          '*/*':
+            type: array
+            items:
+              type: QcCategory
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden
+      '404':
+        description: Not Found
+    (oas-summary): findAllCategories
+    (oas-tags):
+      - qc-category-controller
+  post:
+    displayName: insertCategoryUsingPOST
+    responses:
+      '200':
+        description: OK
+        body:
+          '*/*':
+            type: QcCategory
+      '201':
+        description: Created
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden
+      '404':
+        description: Not Found
+    body:
+      application/json:
+        description: qcCategory
+        type: QcCategory
+        (oas-body-name): qcCategory
+    (oas-summary): insertCategory
+    (oas-tags):
+      - qc-category-controller
+  '/{batchId}':
+    '/{week}':
+      get:
+        displayName: findAllCategoriesByBatchAndWeekUsingGET
+        responses:
+          '200':
+            description: OK
+            body:
+              '*/*':
+                type: array
+                items:
+                  type: QcCategory
+          '401':
+            description: Unauthorized
+          '403':
+            description: Forbidden
+          '404':
+            description: Not Found
+        (oas-summary): findAllCategoriesByBatchAndWeek
+        (oas-tags):
+          - qc-category-controller
+      uriParameters:
+        week:
+          description: week
+          type: integer
+          format: int32
+    uriParameters:
+      batchId:
+        description: batchId
+        type: string
+  '/{id}':
+    delete:
+      displayName: deleteByIdUsingDELETE
+      responses:
+        '200':
+          description: OK
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+      (oas-summary): deleteById
+      (oas-tags):
+        - qc-category-controller
+    uriParameters:
+      id:
+        description: id
+        type: integer
+        format: int32
+/namedWeek:
+  put:
+    displayName: updateNameUsingPUT
+    responses:
+      '200':
+        description: OK
+        body:
+          '*/*':
+            type: NamedWeek
+      '201':
+        description: Created
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden
+      '404':
+        description: Not Found
+    body:
+      application/json:
+        description: namedWeek
+        type: NamedWeek
+        (oas-body-name): namedWeek
+    (oas-summary): updateName
+    (oas-tags):
+      - named-week-controller
+  '/{id}':
+    get:
+      displayName: getWeekNameUsingGET
+      responses:
+        '200':
+          description: OK
+          body:
+            '*/*':
+              type: NamedWeek
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      (oas-summary): getWeekName
+      (oas-tags):
+        - named-week-controller
+    uriParameters:
+      id:
+        description: id
+        type: integer
+        format: int32
+  '/batch/{id}':
+    get:
+      displayName: getWeekNameByBatchIdUsingGET
+      responses:
+        '200':
+          description: OK
+          body:
+            '*/*':
+              type: array
+              items:
+                type: NamedWeek
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      (oas-summary): getWeekNameByBatchId
+      (oas-tags):
+        - named-week-controller
+    uriParameters:
+      id:
+        description: id
+        type: string
+    '/{week}':
+      get:
+        displayName: getNamedWeekByBatchIdAndWeekUsingGET
+        responses:
+          '200':
+            description: OK
+            body:
+              '*/*':
+                type: NamedWeek
+          '401':
+            description: Unauthorized
+          '403':
+            description: Forbidden
+          '404':
+            description: Not Found
+        (oas-summary): getNamedWeekByBatchIdAndWeek
+        (oas-tags):
+          - named-week-controller
+      uriParameters:
+        week:
+          description: week
+          type: integer
+          format: int32
+/notes:
+  get:
+    displayName: getAllNotesUsingGET
+    responses:
+      '200':
+        description: OK
+        body:
+          '*/*':
+            type: array
+            items:
+              type: Note
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden
+      '404':
+        description: Not Found
+    (oas-summary): getAllNotes
+    (oas-tags):
+      - note-controller
+  put:
+    displayName: upsertNoteUsingPUT
+    responses:
+      '200':
+        description: OK
+        body:
+          '*/*':
+            type: Note
+      '201':
+        description: Created
+      '401':
+        description: Unauthorized
+      '403':
+        description: Forbidden
+      '404':
+        description: Not Found
+    body:
+      application/json:
+        description: noteForm
+        type: NoteForm
+        (oas-body-name): noteForm
+    (oas-summary): upsertNote
+    (oas-tags):
+      - note-controller
+  /batch:
+    '/{batchId}':
+      '/{week}':
+        get:
+          displayName: getIndividualNotesByBatchAndWeekUsingGET
+          responses:
+            '200':
+              description: OK
+              body:
+                '*/*':
+                  type: array
+                  items:
+                    type: Note
+            '401':
+              description: Unauthorized
+            '403':
+              description: Forbidden
+            '404':
+              description: Not Found
+          (oas-summary): getIndividualNotesByBatchAndWeek
+          (oas-tags):
+            - note-controller
+        uriParameters:
+          week:
+            description: week
+            type: integer
+            format: int32
+      uriParameters:
+        batchId:
+          description: batchId
+          type: string
+    '/{batch}':
+      get:
+        displayName: getOverallNotesByBatchIdUsingGET
+        responses:
+          '200':
+            description: OK
+            body:
+              '*/*':
+                type: array
+                items:
+                  type: Note
+          '401':
+            description: Unauthorized
+          '403':
+            description: Forbidden
+          '404':
+            description: Not Found
+        (oas-summary): getOverallNotesByBatchId
+        (oas-tags):
+          - note-controller
+      uriParameters:
+        batch:
+          description: batch
+          type: string
+  /current:
+    get:
+      displayName: getQcNotesForCurrentBatchUsingGET
+      responses:
+        '200':
+          description: OK
+          body:
+            '*/*':
+              type: object
+              properties:
+                //:
+                  type: object
+                  properties:
+                    //:
+                      type: integer
+                      format: int32
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      (oas-summary): getQcNotesForCurrentBatch
+      (oas-tags):
+        - note-controller
+  /trainee:
+    '/{batchId}':
+      '/{week}':
+        get:
+          displayName: getQcTraineeNotesByBatchAndWeekUsingGET
+          responses:
+            '200':
+              description: OK
+              body:
+                '*/*':
+                  type: array
+                  items:
+                    type: Note
+            '401':
+              description: Unauthorized
+            '403':
+              description: Forbidden
+            '404':
+              description: Not Found
+          (oas-summary): getQcTraineeNotesByBatchAndWeek
+          (oas-tags):
+            - note-controller
+        uriParameters:
+          week:
+            description: week
+            type: integer
+            format: int32
+      uriParameters:
+        batchId:
+          description: batchId
+          type: string
+    '/{traineeId}':
+      get:
+        displayName: getIndividualNotesByTraineeIdUsingGET
+        responses:
+          '200':
+            description: OK
+            body:
+              '*/*':
+                type: array
+                items:
+                  type: Note
+          '401':
+            description: Unauthorized
+          '403':
+            description: Forbidden
+          '404':
+            description: Not Found
+        (oas-summary): getIndividualNotesByTraineeId
+        (oas-tags):
+          - note-controller
+      uriParameters:
+        traineeId:
+          description: traineeId
+          type: string
+  '/{id}':
+    get:
+      displayName: getNoteUsingGET
+      responses:
+        '200':
+          description: OK
+          body:
+            '*/*':
+              type: Note
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      (oas-summary): getNote
+      (oas-tags):
+        - note-controller
+    uriParameters:
+      id:
+        description: id
+        type: integer
+        format: int32
+  '/individual/{batchId}':
+    get:
+      displayName: getIndividualNotesByBatchIdUsingGET
+      responses:
+        '200':
+          description: OK
+          body:
+            '*/*':
+              type: array
+              items:
+                type: Note
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      (oas-summary): getIndividualNotesByBatchId
+      (oas-tags):
+        - note-controller
+    uriParameters:
+      batchId:
+        description: batchId
+        type: string
+  '/overall/{batch}':
+    '/{week}':
+      get:
+        displayName: getOverallNoteByBatchAndWeekUsingGET
+        responses:
+          '200':
+            description: OK
+            body:
+              '*/*':
+                type: Note
+          '401':
+            description: Unauthorized
+          '403':
+            description: Forbidden
+          '404':
+            description: Not Found
+        (oas-summary): getOverallNoteByBatchAndWeek
+        (oas-tags):
+          - note-controller
+      uriParameters:
+        week:
+          description: week
+          type: integer
+          format: int32
+    uriParameters:
+      batch:
+        description: batch
+        type: string

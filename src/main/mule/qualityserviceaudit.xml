@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd ">
+    <http:listener-config name="qualityauditservice-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8099" />
+    </http:listener-config>
+    <apikit:config name="qualityauditservice-config" api="api\qualityauditservice.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" parser="RAML">
+		<apikit:flow-mappings >
+			<apikit:flow-mapping resource="/notes/batch/{batch}" action="get" flow-ref="get:\notes\batch\(batchId)\(week):qualityauditservice-config" />
+			<apikit:flow-mapping resource="/notes" action="put" content-type="application/json" flow-ref="put:\notes:application\json:qualityauditservice-config" />
+			<apikit:flow-mapping resource="/namedWeek" action="put" content-type="application/json" flow-ref="put:\namedWeek:application\json:qualityauditservice-config" />
+
+		</apikit:flow-mappings>
+	</apikit:config>
+    <http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="20f7072e-e17f-41a2-ac45-c1679ee1d254">
+		<http:request-connection port="7777" host="3.21.237.24"/>
+	</http:request-config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="01b2ea10-4b79-4eb2-a1c4-0f74d2c00d8d" >
+		<http:listener-connection host="0.0.0.0" port="8090" />
+	</http:listener-config>
+	<flow name="qualityauditservice-main">
+        <http:listener config-ref="qualityauditservice-httpListenerConfig" path="/api/*" allowedMethods="GET, POST, PUT, DELETE">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router doc:name="APIkit Router" doc:id="308bafcb-00ea-497c-99fc-998dd7071a69" config-ref="qualityauditservice-config"/>
+		<error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="qualityauditservice-console">
+        <http:listener config-ref="qualityauditservice-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="qualityauditservice-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\namedWeek:application\json:qualityauditservice-config">
+		<http:listener doc:name="NamedWeek:application Listener" doc:id="91b9a0f6-be4f-4061-9d1b-dacb9514fe6e" config-ref="qualityauditservice-httpListenerConfig" path="/namedWeek" allowedMethods="PUT" />
+		<http:request method="PUT" doc:name="namedWeek:application Request" doc:id="c5ebf67b-3145-4473-b736-7a20c9e6b6bf" config-ref="HTTP_Request_configuration" path="/qa/namedWeek/">
+		</http:request>
+		<logger level="INFO" message="put:\namedWeek:application\json:qualityauditservice-config" />
+    
+</flow>
+    <flow name="put:\notes:application\json:qualityauditservice-config">
+        <http:listener doc:name="notes:application Listener" doc:id="d5311d52-4ef8-47a8-99e3-ed1695da1c34" config-ref="qualityauditservice-httpListenerConfig" path="/notes" allowedMethods="PUT" />
+		<http:request method="PUT" doc:name="notes:application Request" doc:id="cedf439f-0308-46ae-8e2a-65184250bced" config-ref="HTTP_Request_configuration" path="/qa/notes/">
+		</http:request>
+		<logger level="INFO" message="put:\notes:application\json:qualityauditservice-config" />
+    </flow>
+    <flow name="delete:\category\(id):qualityauditservice-config">
+        <http:listener doc:name="category Listener" doc:id="0f0be37f-81be-470f-b090-d3d4a692cd22" config-ref="qualityauditservice-httpListenerConfig" path="/category/{id}" allowedMethods="DELETE" />
+		<http:request method="DELETE" doc:name="category Request" doc:id="a066b07b-09e9-4eb6-984b-d8c9b7960f25" config-ref="HTTP_Request_configuration" path="/qa/category/{id}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"id" : "attributes.uriParams.id"
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.'id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\category\(id):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\namedWeek\batch\(id):qualityauditservice-config">
+        <http:listener doc:name="namedWeek\batch Listener" doc:id="2e04e7b2-a5be-4d9b-b77f-870125f97a6b" config-ref="qualityauditservice-httpListenerConfig" path="/namedWeek/batch/{id}" allowedMethods="GET" />
+		<http:request method="GET" doc:name="namedWeek\batch Request" doc:id="8fd1e588-0026-4232-837b-14cfd873b23a" config-ref="HTTP_Request_configuration" path="/qa/namedWeek/batch/{id}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	'id' : attributes.uriParams.id
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.'id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\namedWeek\batch\(id):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\category:qualityauditservice-config">
+        <http:listener doc:name="category Listener" doc:id="cd85be87-6a84-4b42-abe7-63be73ba84be" config-ref="qualityauditservice-httpListenerConfig" path="/category" allowedMethods="GET" />
+		<http:request method="GET" doc:name="category Request" doc:id="1672aa90-24ad-44ca-8c67-c3f91ff8727a" config-ref="HTTP_Request_configuration" path="/qa/category/">
+		</http:request>
+		<logger level="INFO" message="get:\category:qualityauditservice-config" />
+    </flow>
+    <flow name="get:\notes\current:qualityauditservice-config">
+        <http:listener doc:name="notes\current Listener" doc:id="0d886253-d0a6-49c0-b6a2-f7c0bb039a41" config-ref="qualityauditservice-httpListenerConfig" path="/notes/current" allowedMethods="GET" />
+		<http:request method="GET" doc:name="notes\current Request" doc:id="6e525648-2cae-4bd9-ba83-f01cda88b63b" config-ref="HTTP_Request_configuration" path="/qa/notes/current">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"" : ""
+}]]]></http:uri-params>
+		</http:request>
+		<logger level="INFO" message="get:\notes\current:qualityauditservice-config" />
+    </flow>
+    <flow name="get:\notes\individual\(batchId):qualityauditservice-config">
+        <http:listener doc:name="notes\individual Listener" doc:id="c8f12e7f-86e2-4123-8783-3a6c791232c9" config-ref="qualityauditservice-httpListenerConfig" path="/notes/individual/{batchId}" allowedMethods="GET" />
+		<http:request method="GET" doc:name="notes\individual Request" doc:id="cb4cc7bd-0dba-4d61-9366-2cfcf7f51420" config-ref="HTTP_Request_configuration" path="/qa/notes/individual/{batchId}" >
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	'batchId' : attributes.uriParams.batchId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="batchId">attributes.uriParams.'batchId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\notes\individual\(batchId):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\notes:qualityauditservice-config">
+        <http:listener doc:name="notes Listener" doc:id="eb105ee2-7694-45e2-85c3-b75006461700" config-ref="qualityauditservice-httpListenerConfig" path="/notes" allowedMethods="GET"/>
+		<http:request method="GET" doc:name="notes Request" doc:id="cf109bb7-e8f3-4356-8bf9-897e16d8e685" config-ref="HTTP_Request_configuration" path="/qa/notes/"/>
+		<logger level="INFO" message="get:\notes:qualityauditservice-config" />
+    </flow>
+    <flow name="get:\notes\batch\(batch):qualityauditservice-config">
+        <http:listener doc:name="notes\batch\(batch) Listener" doc:id="99940f8e-c1da-4289-8e5b-d67d3d622474" config-ref="qualityauditservice-httpListenerConfig" path="/notes/batch/{batchId}" allowedMethods="GET"/>
+		<http:request method="GET" doc:name="notes\batch\(batch) Request" doc:id="11472198-ebe0-4667-a1e4-9c4ba9f33708" config-ref="HTTP_Request_configuration" path="/qa/notes/batch/{batchId}" >
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	'batchId' : attributes.uriParams.batchId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="batch">attributes.uriParams.'batch'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<logger level="INFO" message="get:\notes\batch\(batch):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\namedWeek\(id):qualityauditservice-config">
+        <http:listener doc:name="namedWeek\(id) Listener" doc:id="219479ac-ca24-4160-968f-ec9871431a76" config-ref="qualityauditservice-httpListenerConfig" path="/namedWeek/{id}" allowedMethods="GET"/>
+		<http:request method="GET" doc:name="namedWeek\(id) Request" doc:id="47a80270-ad8a-449b-a6e0-db5791a2a3ef" config-ref="HTTP_Request_configuration" path="/qa/namedWeek/{id}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	'id' : attributes.uriParams.id
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.'id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\namedWeek\(id):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\notes\(id):qualityauditservice-config">
+        <http:listener doc:name="notes\(id) Listener" doc:id="a3f8b467-e0bf-418c-b44f-087437f03a0f" config-ref="qualityauditservice-httpListenerConfig" path="/notes/{id}" allowedMethods="GET" />
+		<http:request method="GET" doc:name="notes\(id) Request" doc:id="2a08bf89-d2ed-4fab-b0c8-2edb25a94d0c" config-ref="HTTP_Request_configuration" path="/qa/notes/{id}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	'id' : attributes.uriParams.id
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.'id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\notes\(id):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\notes\trainee\(traineeId):qualityauditservice-config">
+        <http:listener doc:name="notes\trainee Listener" doc:id="7615fd2d-bb79-490f-99c8-d75c07617a22" config-ref="qualityauditservice-httpListenerConfig" path="/notes/trainee/{traineeId}" allowedMethods="GET" />
+		<http:request method="GET" doc:name="notes\trainee Request" doc:id="0119c90c-8398-43de-b7bc-57924ff8d389" config-ref="HTTP_Request_configuration" path="/qa/notes/trainee/{traineeId}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	'traineeId' : attributes.uriParams.traineeId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="traineeId">attributes.uriParams.'traineeId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\notes\trainee\(traineeId):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\notes\trainee\(batchId)\(week):qualityauditservice-config">
+        <http:listener doc:name="notes\trainee\(batchId)\(week) Listener" doc:id="34ceee3e-07fa-4482-8e4c-07ce1bb0fffb" config-ref="qualityauditservice-httpListenerConfig" path="/notes/trainee/{batchId}/{week}" allowedMethods="GET" />
+		<http:request method="GET" doc:name="notes\trainee\(batchId)\(week) Request" doc:id="b531b097-f20d-4536-90ca-9777b25abd24" config-ref="HTTP_Request_configuration" path="/qa/notes/trainee/{batchId}/{week}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	'week' : attributes.uriParams.week,
+	'batchId' : attributes.uriParams.batchId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="batchId">attributes.uriParams.'batchId'</ee:set-variable>
+                <ee:set-variable variableName="week">attributes.uriParams.'week'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\notes\trainee\(batchId)\(week):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\notes\overall\(batch)\(week):qualityauditservice-config">
+        <http:listener doc:name="notes\overall\(batchId)\(week) Listener" doc:id="0812763f-d74d-4f34-8f89-c8286b6ddd2d" config-ref="qualityauditservice-httpListenerConfig" path="/notes/overall/{batchId}/{week}" allowedMethods="GET" />
+		<http:request method="GET" doc:name="notes\overall\(batchId)\(week) Request" doc:id="277ed203-1fe9-4bfe-9be5-7346357a1c06" config-ref="HTTP_Request_configuration" path="/qa/notes/overall/{batchId}/{week}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	'week' : attributes.uriParams.week,
+	'batchId' : attributes.uriParams.batchId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="batch">attributes.uriParams.'batch'</ee:set-variable>
+                <ee:set-variable variableName="week">attributes.uriParams.'week'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\notes\overall\(batch)\(week):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\notes\batch\(batchId)\(week):qualityauditservice-config">
+        <http:listener doc:name="notes\batch\(batchId)\(week) Listener" doc:id="83cba205-2d5f-4f4b-9a03-a7ad496626fb" config-ref="qualityauditservice-httpListenerConfig" path="/notes/batch/{batchId}/{week}" allowedMethods="GET" />
+		<http:request method="GET" doc:name="notes\batch\(batchId)\(week) Request" doc:id="8d5ba45a-bd47-4346-9e8f-0af08533bcbf" config-ref="HTTP_Request_configuration" path="/qa/notes/batch/{batchId}/{week}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	'week' : attributes.uriParams.week,
+	'batchId' : attributes.uriParams.batchId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="batchId">attributes.uriParams.'batchId'</ee:set-variable>
+                <ee:set-variable variableName="week">attributes.uriParams.'week'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\notes\batch\(batchId)\(week):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\category\(batchId)\(week):qualityauditservice-config">
+        <http:listener doc:name="category\(batchId)\(week) Listener" doc:id="6e6a6993-e5cd-43a3-a0d9-c89b545ce749" config-ref="qualityauditservice-httpListenerConfig" path="/category/{batchId}/{week}" allowedMethods="GET" />
+		<http:request method="GET" doc:name="category\(batchId)\(week) Request" doc:id="02c58c01-d6de-4acb-b7ac-6f87b9705e84" config-ref="HTTP_Request_configuration" path="/qa/category/{batchId}/{week}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	'week' : attributes.uriParams.week,
+	'batchId' : attributes.uriParams.batchId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="batchId">attributes.uriParams.'batchId'</ee:set-variable>
+                <ee:set-variable variableName="week">attributes.uriParams.'week'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\category\(batchId)\(week):qualityauditservice-config" />
+    </flow>
+    <flow name="get:\namedWeek\batch\(id)\(week):qualityauditservice-config">
+        <http:listener doc:name="namedWeek\batch\(id)\(week) Listener" doc:id="902f37a0-af6d-46f1-85a0-c69aa19ea14e" config-ref="qualityauditservice-httpListenerConfig" path="/namedWeek/batch/{id}/{week}" allowedMethods="GET" />
+		<http:request method="GET" doc:name="namedWeek\batch\(id)\(week) Request" doc:id="aa773b11-fd66-4ef3-a192-7b62780b0463" config-ref="HTTP_Request_configuration" path="/qa/namedWeek/batch/{id}/{week}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	'week' : attributes.uriParams.week,
+	'id' : attributes.uriParams.id
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.'id'</ee:set-variable>
+                <ee:set-variable variableName="week">attributes.uriParams.'week'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\namedWeek\batch\(id)\(week):qualityauditservice-config" />
+    </flow>
+    <flow name="post:\category:application\json:qualityauditservice-config">
+        <http:listener doc:name="category:application Listener" doc:id="b283b549-bb44-46df-82f5-7df8cf6e91c6" config-ref="qualityauditservice-httpListenerConfig" path="/category" allowedMethods="POST" />
+		<http:request method="POST" doc:name="category:application Request" doc:id="fa87f6e6-b14e-40f7-82e4-7df477c95362" config-ref="HTTP_Request_configuration" path="/qa/category/">
+		</http:request>
+		<logger level="INFO" message="post:\category:application\json:qualityauditservice-config" />
+    </flow>
+</mule>
+	
